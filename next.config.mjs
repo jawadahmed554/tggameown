@@ -4,6 +4,8 @@ const nextConfig = {
   env: {
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     NEXT_PUBLIC_WEBAPP_URL: process.env.NEXT_PUBLIC_WEBAPP_URL,
+    NEXT_PUBLIC_THIRDWEB_CLIENT_ID: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
+    NEXT_PUBLIC_AUTH_PHRASE: process.env.NEXT_PUBLIC_AUTH_PHRASE,
   },
   async rewrites() {
     return [
@@ -28,6 +30,12 @@ const nextConfig = {
         ],
       },
       {
+        source: '/api/auth/telegram',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: 'https://web.telegram.org' },
@@ -42,6 +50,10 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false, net: false, tls: false };
+    return config;
   },
 };
 
