@@ -9,7 +9,6 @@ export const client = createThirdwebClient({
 });
 
 export const wallet = inAppWallet({
-  client,
   smartAccount: {
     sponsorGas: true,
     chain: chain

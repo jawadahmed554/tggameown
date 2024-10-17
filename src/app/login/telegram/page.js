@@ -30,7 +30,7 @@ function TelegramLoginContent() {
             }
             try {
                 await connect(async () => {
-                    const connectedWallet = await wallet.connect({
+                    await wallet.connect({
                         client,
                         strategy: "auth_endpoint",
                         payload: JSON.stringify({
@@ -39,7 +39,9 @@ function TelegramLoginContent() {
                         }),
                         encryptionKey: process.env.NEXT_PUBLIC_AUTH_PHRASE,
                     });
-                    return connectedWallet;
+                    console.log('Connected to wallet in login', wallet);
+                    return wallet
+                    
                 });
                 router.replace("/");
                 return true;

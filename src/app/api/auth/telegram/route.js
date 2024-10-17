@@ -23,14 +23,16 @@ export async function POST(req) {
 
         if (!userId) {
             console.log(`${FILE_NAME} Authentication failed: Invalid credentials`);
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+            return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
         }
 
         console.log(`${FILE_NAME} Authentication successful for user:`, userId);
-        return NextResponse.json({ userId });
+        return NextResponse.json({
+            userId: userId
+        });
     } catch (error) {
         console.error(`${FILE_NAME} Error processing request:`, error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
     }
 }
 
