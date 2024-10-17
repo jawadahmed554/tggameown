@@ -5,6 +5,7 @@ import { client } from "../../../constants";
 
 const FILE_NAME = "[api/auth/telegram/route.js]";
 
+console.log(`${FILE_NAME} Initializing admin account`);
 const adminAccount = privateKeyToAccount({
     privateKey: process.env.SPONSOR_PRIVATE_KEY,
     client,
@@ -12,24 +13,16 @@ const adminAccount = privateKeyToAccount({
 
 export async function POST(req) {
     console.log(`${FILE_NAME} POST request received`);
-    
     try {
-        const body = await req.json();
-        console.log(`${FILE_NAME} Received body:`, body);
-        
-        const { payload } = body;
-        if (!payload) {
-            console.log(`${FILE_NAME} Missing payload`);
-            return NextResponse.json({ error: "Missing payload" }, { status: 401 });
-        }
-
-        const { signature, message, initData } = JSON.parse(payload);
-        console.log(`${FILE_NAME} Parsed payload:`, { signature, message, initData });
+        const { payload } = await req.json();
+        console.log(`${FILE_NAME} Received payload:`, payload);
+        const { signature, message } = JSON.parse(payload);
+        console.log(`${FILE_NAME} Parsed signature and message`);
 
         const userId = await verifyTelegram(signature, message);
 
         if (!userId) {
-            console.log(`${FILE_NAME} Invalid credentials`);
+            console.log(`${FILE_NAME} Authentication failed: Invalid credentials`);
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
         }
 
@@ -52,12 +45,12 @@ async function verifyTelegram(signature, message) {
         const metadata = JSON.parse(message);
         
         if (!metadata.expiration || metadata.expiration < Date.now()) {
-            console.log(`${FILE_NAME} Signature expired or missing expiration`);
+            console.log(`${FILE_NAME} Verification failed: Signature expired or missing expiration`);
             return false;
         }
 
         if (!metadata.username) {
-            console.log(`${FILE_NAME} Missing username in metadata`);
+            console.log(`${FILE_NAME} Verification failed: Missing username in metadata`);
             return false;
         }
 
@@ -69,7 +62,7 @@ async function verifyTelegram(signature, message) {
         });
 
         if (!isValid) {
-            console.log(`${FILE_NAME} Invalid signature`);
+            console.log(`${FILE_NAME} Verification failed: Invalid signature`);
             return false;
         }
 
