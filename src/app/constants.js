@@ -1,3 +1,5 @@
+"use client";
+
 import { Sepolia } from "@thirdweb-dev/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { createThirdwebClient } from "thirdweb";
