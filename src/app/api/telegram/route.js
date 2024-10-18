@@ -77,7 +77,7 @@ export async function POST(req) {
 
     if (messageText === '/start') {
       const username = data.message.from.id.toString();
-      const expiration = Date.now() + 600_000; // valid for 10 minutes
+      const expiration = Date.now() + 600000; // valid for 10 minutes
       const message = JSON.stringify({
         username,
         expiration,
