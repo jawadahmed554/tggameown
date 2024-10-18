@@ -76,18 +76,26 @@ export async function POST(req) {
     const messageText = data.message.text.toLowerCase();
 
     if (messageText === '/start') {
-      const username = data.message.from.id.toString();
+      const userId = data.message.from.id.toString();
       const expiration = Date.now() + 600000; // valid for 10 minutes
-      const message = JSON.stringify({
-        username,
+      const payload = {
+        userId,
         expiration,
-      });
-      const authCode = await sponsorAccount.signMessage({
-        message,
+      };
+      const payloadString = JSON.stringify(payload);
+      
+      console.log(`${FILE_NAME} Creating payload:`, payloadString);
+
+      const signature = await sponsorAccount.signMessage({
+        message: payloadString,
       });
 
-      const webAppUrl = `${WEBAPP_URL}/login/telegram?signature=${encodeURIComponent(authCode)}&message=${encodeURIComponent(message)}`;
+      console.log(`${FILE_NAME} Signature generated:`, signature);
+
+      const webAppUrl = `${WEBAPP_URL}/login/telegram?signature=${encodeURIComponent(signature)}&payload=${encodeURIComponent(payloadString)}`;
       
+      console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
+
       const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to launch our WebApp.";
       const keyboard = {
         inline_keyboard: [[
@@ -98,6 +106,7 @@ export async function POST(req) {
         ]]
       };
       await sendTelegramMessage(chatId, welcomeMessage, keyboard);
+      console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
     } else {
       const replyMessage = `You said: ${data.message.text}`;
       await sendTelegramMessage(chatId, replyMessage);

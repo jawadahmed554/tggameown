@@ -5,7 +5,6 @@ import { createThirdwebClient } from "thirdweb";
 
 const FILE_NAME = "[api/auth/telegram/route.js]";
 
-
 console.log(`${FILE_NAME} Initializing admin account`);
 const privateKey = process.env.SPONSOR_PRIVATE_KEY;
 const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
@@ -42,18 +41,15 @@ export async function POST(req) {
   console.log(`${FILE_NAME} POST request received`);
 
   try {
-    const { payload } = await req.json();
-    console.log(`${FILE_NAME} Received payload:`, payload);
+    const { signature, payload } = await req.json();
+    console.log(`${FILE_NAME} Received signature and payload`);
 
-    if (!payload) {
-      console.log(`${FILE_NAME} Authentication failed: Missing payload`);
-      return NextResponse.json({ message: "Missing payload" }, { status: 400 });
+    if (!signature || !payload) {
+      console.log(`${FILE_NAME} Authentication failed: Missing signature or payload`);
+      return NextResponse.json({ message: "Missing signature or payload" }, { status: 400 });
     }
 
-    const { signature, message } = JSON.parse(payload);
-    console.log(`${FILE_NAME} Parsed signature and message`);
-
-    const userId = await verifyTelegram(signature, message);
+    const userId = await verifyTelegram(signature, payload);
     if (!userId) {
       console.log(`${FILE_NAME} Authentication failed: Invalid credentials`);
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
@@ -62,6 +58,7 @@ export async function POST(req) {
     console.log(`${FILE_NAME} Authentication successful for user:`, userId);
     return NextResponse.json({
       userId: userId,
+      exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
     });
   } catch (error) {
     console.error(`${FILE_NAME} Error processing request:`, error);
@@ -74,29 +71,29 @@ export async function GET(req) {
   return NextResponse.json({ status: "Telegram auth endpoint is active" });
 }
 
-async function verifyTelegram(signature, message) {
+async function verifyTelegram(signature, payload) {
   console.log(`${FILE_NAME} Verifying Telegram signature`);
 
   try {
-    const metadata = JSON.parse(message);
+    const payloadObj = JSON.parse(payload);
 
     // Check expiration
-    if (!metadata.expiration || metadata.expiration < Date.now()) {
-      console.log(`${FILE_NAME} Verification failed: Signature expired or missing expiration`);
+    if (!payloadObj.expiration || payloadObj.expiration < Date.now()) {
+      console.log(`${FILE_NAME} Verification failed: Payload expired or missing expiration`);
       return false;
     }
 
-    // Check if username exists
-    if (!metadata.username) {
-      console.log(`${FILE_NAME} Verification failed: Missing username in metadata`);
+    // Check if userId exists
+    if (!payloadObj.userId) {
+      console.log(`${FILE_NAME} Verification failed: Missing userId in payload`);
       return false;
     }
-
+    const userId = String(payloadObj.userId);
     // Verify the signature
     const isValid = await verifySignature({
       client,
       address: adminAccount.address,
-      message: message,
+      message: payload,
       signature,
     });
 
@@ -106,7 +103,7 @@ async function verifyTelegram(signature, message) {
     }
 
     console.log(`${FILE_NAME} Telegram signature verified successfully`);
-    return metadata.username;
+    return userId;
   } catch (error) {
     console.error(`${FILE_NAME} Error verifying Telegram signature:`, error);
     return false;

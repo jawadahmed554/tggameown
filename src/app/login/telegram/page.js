@@ -5,50 +5,50 @@ import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useConnect } from "thirdweb/react";
 import { useRouter } from "next/navigation";
-import { wallet, client } from "../../constants"; // Import wallet from constants
+import { wallet, client } from "../../constants";
 import { Loader2 } from "lucide-react";
 
 function TelegramLoginContent() {
   const searchParams = useSearchParams();
   const { connect } = useConnect();
   const router = useRouter();
-  const [params, setParams] = useState({ signature: "", message: "" });
-  const [error, setError] = useState(null); // New error state
+  const [params, setParams] = useState({ signature: "", payload: "" });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const signature = searchParams.get("signature") || "";
-    const message = searchParams.get("message") || "";
-    setParams({ signature, message });
-    console.log("SearchParams:", { signature, message });
+    const payload = searchParams.get("payload") || "";
+    setParams({ signature, payload });
+    console.log("SearchParams:", { signature, payload });
   }, [searchParams]);
 
   useQuery({
-    queryKey: ["telegram-login", params.signature, params.message],
+    queryKey: ["telegram-login", params.signature, params.payload],
     queryFn: async () => {
-      if (!params.signature || !params.message) {
-        setError("Missing signature or message.");
-        console.error("Missing signature or message");
+      if (!params.signature || !params.payload) {
+        setError("Missing signature or payload.");
+        console.error("Missing signature or payload");
         return false;
       }
 
       try {
         console.log("Attempting to connect wallet with payload:", {
           signature: params.signature,
-          message: params.message,
+          payload: params.payload,
         });
 
         await connect(async () => {
-          await wallet.connect({
-            client, // Use the client from constants
+          const connectedWallet = await wallet.connect({
+            client,
             strategy: "auth_endpoint",
             payload: JSON.stringify({
               signature: params.signature,
-              message: params.message,
+              payload: params.payload,
             }),
             encryptionKey: process.env.NEXT_PUBLIC_AUTH_PHRASE,
           });
-          console.log("Connected to wallet successfully", wallet);
-          return wallet;
+          console.log("Connected to wallet successfully", connectedWallet);
+          return connectedWallet;
         });
 
         router.replace("/");
@@ -59,7 +59,7 @@ function TelegramLoginContent() {
         return false;
       }
     },
-    enabled: !!params.signature && !!params.message,
+    enabled: !!params.signature && !!params.payload,
   });
 
   return (
