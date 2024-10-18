@@ -49,30 +49,31 @@ export async function POST(req) {
       const body = await req.json();
       console.log(`${FILE_NAME} Received full request body:`, JSON.stringify(body, null, 2));
   
-      // Log each property of the body separately
-      for (const [key, value] of Object.entries(body)) {
-        console.log(`${FILE_NAME} ${key}:`, typeof value === 'object' ? JSON.stringify(value, null, 2) : value);
+      const { payload } = body;
+  
+      if (!payload) {
+        console.log(`${FILE_NAME} Authentication failed: Missing payload`);
+        return NextResponse.json({ message: "Missing payload" }, { status: 400 });
       }
   
-      // Attempt to extract signature and payload
-      const { signature, payload } = body;
+      const parsedPayload = JSON.parse(payload);
+      console.log(`${FILE_NAME} Parsed payload:`, JSON.stringify(parsedPayload, null, 2));
   
-      if (!signature || !payload) {
-        console.log(`${FILE_NAME} Authentication failed: Missing signature or payload`);
-        return NextResponse.json({ message: "Missing signature or payload" }, { status: 400 });
+      const { signature, payload: innerPayload } = parsedPayload;
+  
+      if (!signature || !innerPayload) {
+        console.log(`${FILE_NAME} Authentication failed: Missing signature or inner payload`);
+        return NextResponse.json({ message: "Invalid payload structure" }, { status: 400 });
       }
   
-      const userId = await verifyTelegram(signature, payload);
-      if (!userId) {
+      const verificationResult = await verifyTelegram(signature, innerPayload);
+      if (!verificationResult) {
         console.log(`${FILE_NAME} Authentication failed: Invalid credentials`);
         return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
       }
   
-      console.log(`${FILE_NAME} Authentication successful for user:`, userId);
-      return NextResponse.json({
-        userId: userId,
-        exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
-      });
+      console.log(`${FILE_NAME} Authentication successful for user:`, verificationResult.userId);
+      return NextResponse.json(verificationResult);
     } catch (error) {
       console.error(`${FILE_NAME} Error processing request:`, error);
       return NextResponse.json({ message: "Internal server error" }, { status: 500 });
@@ -80,14 +81,11 @@ export async function POST(req) {
   }
   
   async function verifyTelegram(signature, payload) {
-    console.log(`${FILE_NAME} Verifying Telegram signature`);
+    console.log(`${FILE_NAME} Verifying Telegram payload:`, payload);
     console.log(`${FILE_NAME} Signature:`, signature);
-    console.log(`${FILE_NAME} Payload:`, typeof payload === 'object' ? JSON.stringify(payload, null, 2) : payload);
   
     try {
-      const payloadObj = typeof payload === 'string' ? JSON.parse(payload) : payload;
-  
-      console.log(`${FILE_NAME} Parsed payload:`, JSON.stringify(payloadObj, null, 2));
+      const payloadObj = JSON.parse(payload);
   
       // Check expiration
       if (!payloadObj.expiration || payloadObj.expiration < Date.now()) {
@@ -100,13 +98,12 @@ export async function POST(req) {
         console.log(`${FILE_NAME} Verification failed: Missing userId in payload`);
         return false;
       }
-      const userId = String(payloadObj.userId);
   
       // Verify the signature
       const isValid = await verifySignature({
         client,
         address: adminAccount.address,
-        message: typeof payload === 'string' ? payload : JSON.stringify(payload),
+        message: payload,
         signature,
       });
   
@@ -116,9 +113,12 @@ export async function POST(req) {
       }
   
       console.log(`${FILE_NAME} Telegram signature verified successfully`);
-      return userId;
+      return {
+        userId: String(payloadObj.userId),
+        exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+      };
     } catch (error) {
-      console.error(`${FILE_NAME} Error verifying Telegram signature:`, error);
+      console.error(`${FILE_NAME} Error verifying Telegram payload:`, error);
       return false;
     }
   }
