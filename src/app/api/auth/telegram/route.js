@@ -1,18 +1,37 @@
 import { privateKeyToAccount } from "thirdweb/wallets";
 import { verifySignature } from "thirdweb/auth";
 import { NextResponse } from "next/server";
-import { client } from "../../../constants";
+import { createThirdwebClient } from "thirdweb";
 
 const FILE_NAME = "[api/auth/telegram/route.js]";
 
-// Fetch the private key from the environment and validate it
+
 console.log(`${FILE_NAME} Initializing admin account`);
 const privateKey = process.env.SPONSOR_PRIVATE_KEY;
+const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
+const secretKey = process.env.NEXT_PUBLIC_THIRDWEB_SECRET_KEY;
 
 if (!privateKey) {
   console.error(`${FILE_NAME} Missing SPONSOR_PRIVATE_KEY`);
   throw new Error("SPONSOR_PRIVATE_KEY is not defined");
 }
+
+if (!clientId) {
+  console.error(`${FILE_NAME} Missing NEXT_PUBLIC_THIRDWEB_CLIENT_ID`);
+  throw new Error("NEXT_PUBLIC_THIRDWEB_CLIENT_ID is not defined");
+}
+
+if (!secretKey) {
+  console.error(`${FILE_NAME} Missing NEXT_PUBLIC_THIRDWEB_SECRET_KEY`);
+  throw new Error("NEXT_PUBLIC_THIRDWEB_SECRET_KEY is not defined");
+}
+
+export const client = createThirdwebClient({ 
+    clientId: clientId,
+    secretKey: secretKey
+});
+
+console.log(`${FILE_NAME} Thirdweb client created with clientId: ${clientId}`);
 
 const adminAccount = privateKeyToAccount({
   privateKey,
