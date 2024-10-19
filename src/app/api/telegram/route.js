@@ -76,7 +76,23 @@ export async function POST(req) {
         const responseData = JSON.parse(responseText);
         console.log(`${FILE_NAME} JWT response data:`, JSON.stringify(responseData, null, 2));
 
-        // ... (rest of the code remains the same)
+        const { token } = responseData;
+        
+        const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
+        
+        console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
+
+        const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to access your wallet.";
+        const keyboard = {
+          inline_keyboard: [[
+            {
+              text: "Access Wallet",
+              web_app: {url: webAppUrl}
+            }
+          ]]
+        };
+        await sendTelegramMessage(chatId, welcomeMessage, keyboard);
+        console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
       } catch (error) {
         console.error(`${FILE_NAME} Error in /start command:`, error);
         await sendTelegramMessage(chatId, "Sorry, there was an error. Please try again later.");
