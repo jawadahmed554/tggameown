@@ -26,17 +26,21 @@ export async function POST(request) {
 
     console.log(`${FILE_NAME} Generating JWT for user ID:`, userId);
 
-    const token = jwt.sign({ userId }, JWT_PRIVATE_KEY, { 
-      algorithm: 'RS256',
-      expiresIn: '1h',
-      keyid: '0'  // Make sure this matches the 'kid' in your JWKS
-    });
+    try {
+      const token = jwt.sign({ userId }, JWT_PRIVATE_KEY, { 
+        algorithm: 'RS256',
+        expiresIn: '1h',
+        keyid: '0'  // Make sure this matches the 'kid' in your JWKS
+      });
 
-    console.log(`${FILE_NAME} JWT generated successfully`);
-
-    return NextResponse.json({ token });
+      console.log(`${FILE_NAME} JWT generated successfully`);
+      return NextResponse.json({ token });
+    } catch (jwtError) {
+      console.error(`${FILE_NAME} Error in jwt.sign:`, jwtError);
+      return NextResponse.json({ error: `JWT signing error: ${jwtError.message}` }, { status: 500 });
+    }
   } catch (error) {
-    console.error(`${FILE_NAME} Error generating JWT:`, error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error(`${FILE_NAME} Error in POST handler:`, error);
+    return NextResponse.json({ error: `Internal server error: ${error.message}` }, { status: 500 });
   }
 }
