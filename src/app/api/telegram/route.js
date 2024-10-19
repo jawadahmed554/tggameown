@@ -39,14 +39,22 @@ export async function POST(req) {
   console.log(`${FILE_NAME} POST request received`);
   const data = await req.json();
   
+  console.log(`${FILE_NAME} Received data:`, JSON.stringify(data, null, 2));
+  
   if (data.message && data.message.text) {
     const chatId = data.message.chat.id;
     const messageText = data.message.text.toLowerCase();
 
+    console.log(`${FILE_NAME} Chat ID:`, chatId);
+    console.log(`${FILE_NAME} Message text:`, messageText);
+
     if (messageText === '/start') {
       const userId = data.message.from.id.toString();
+      console.log(`${FILE_NAME} User ID:`, userId);
       
       try {
+        console.log(`${FILE_NAME} Attempting to generate JWT for user:`, userId);
+        
         // Get JWT from our internal API route
         const jwtResponse = await fetch(`${WEBAPP_URL}/api/authJwt/generate-jwt`, {
           method: 'POST',
@@ -56,13 +64,18 @@ export async function POST(req) {
           body: JSON.stringify({ userId }),
         });
 
+        console.log(`${FILE_NAME} JWT response status:`, jwtResponse.status);
+
         if (!jwtResponse.ok) {
           const errorText = await jwtResponse.text();
           console.error(`${FILE_NAME} Failed to generate JWT. Status: ${jwtResponse.status}, Error: ${errorText}`);
           throw new Error(`Failed to generate JWT: ${errorText}`);
         }
 
-        const { token } = await jwtResponse.json();
+        const responseData = await jwtResponse.json();
+        console.log(`${FILE_NAME} JWT response data:`, JSON.stringify(responseData, null, 2));
+
+        const { token } = responseData;
         
         const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
         
@@ -77,8 +90,8 @@ export async function POST(req) {
             }
           ]]
         };
-        await sendTelegramMessage(chatId, welcomeMessage, keyboard);
-        console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
+        const messageResponse = await sendTelegramMessage(chatId, welcomeMessage, keyboard);
+        console.log(`${FILE_NAME} Telegram message response:`, JSON.stringify(messageResponse, null, 2));
       } catch (error) {
         console.error(`${FILE_NAME} Error in /start command:`, error);
         await sendTelegramMessage(chatId, "Sorry, there was an error. Please try again later.");
@@ -87,6 +100,8 @@ export async function POST(req) {
       const replyMessage = `You said: ${data.message.text}`;
       await sendTelegramMessage(chatId, replyMessage);
     }
+  } else {
+    console.log(`${FILE_NAME} Received data does not contain a message or text`);
   }
 
   return NextResponse.json({ ok: true });
