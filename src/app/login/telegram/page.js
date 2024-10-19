@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { inAppWallet } from "thirdweb/wallets";
@@ -59,6 +59,14 @@ function TelegramLoginContent() {
   );
 }
 
+function TelegramLoginWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TelegramLoginContent />
+    </Suspense>
+  );
+}
+
 export default function TelegramLogin() {
-  return <TelegramLoginContent />;
+  return <TelegramLoginWrapper />;
 }
