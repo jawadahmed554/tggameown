@@ -46,38 +46,43 @@ export async function POST(req) {
     if (messageText === '/start') {
       const userId = data.message.from.id.toString();
       
-      // Get JWT from our internal API route
-      const jwtResponse = await fetch(`${WEBAPP_URL}/api/authJwt/generate-jwt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
+      try {
+        // Get JWT from our internal API route
+        const jwtResponse = await fetch(`${WEBAPP_URL}/api/authJwt/generate-jwt`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        });
 
-      if (!jwtResponse.ok) {
-        console.error(`${FILE_NAME} Failed to generate JWT`);
+        if (!jwtResponse.ok) {
+          const errorText = await jwtResponse.text();
+          console.error(`${FILE_NAME} Failed to generate JWT. Status: ${jwtResponse.status}, Error: ${errorText}`);
+          throw new Error(`Failed to generate JWT: ${errorText}`);
+        }
+
+        const { token } = await jwtResponse.json();
+        
+        const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
+        
+        console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
+
+        const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to access your wallet.";
+        const keyboard = {
+          inline_keyboard: [[
+            {
+              text: "Access Wallet",
+              web_app: {url: webAppUrl}
+            }
+          ]]
+        };
+        await sendTelegramMessage(chatId, welcomeMessage, keyboard);
+        console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
+      } catch (error) {
+        console.error(`${FILE_NAME} Error in /start command:`, error);
         await sendTelegramMessage(chatId, "Sorry, there was an error. Please try again later.");
-        return NextResponse.json({ ok: false });
       }
-
-      const { token } = await jwtResponse.json();
-      
-      const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
-      
-      console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
-
-      const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to access your wallet.";
-      const keyboard = {
-        inline_keyboard: [[
-          {
-            text: "Access Wallet",
-            web_app: {url: webAppUrl}
-          }
-        ]]
-      };
-      await sendTelegramMessage(chatId, welcomeMessage, keyboard);
-      console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
     } else {
       const replyMessage = `You said: ${data.message.text}`;
       await sendTelegramMessage(chatId, replyMessage);
