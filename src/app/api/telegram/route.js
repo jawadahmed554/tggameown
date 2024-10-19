@@ -1,29 +1,9 @@
 import { NextResponse } from 'next/server';
-import { privateKeyToAccount } from "thirdweb/wallets";
-import { createThirdwebClient } from "thirdweb";
 
 const FILE_NAME = "[api/telegram/route.js]";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const SPONSOR_PRIVATE_KEY = process.env.SPONSOR_PRIVATE_KEY;
-const THIRDWEB_CLIENT_ID = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
-const THIRDWEB_SECRET_KEY = process.env.NEXT_PUBLIC_THIRDWEB_SECRET_KEY;
 const WEBAPP_URL = process.env.NEXT_PUBLIC_WEBAPP_URL;
-
-if (!SPONSOR_PRIVATE_KEY) {
-  console.error(`${FILE_NAME} Missing SPONSOR_PRIVATE_KEY`);
-  throw new Error("SPONSOR_PRIVATE_KEY is not defined");
-}
-
-if (!THIRDWEB_CLIENT_ID) {
-  console.error(`${FILE_NAME} Missing NEXT_PUBLIC_THIRDWEB_CLIENT_ID`);
-  throw new Error("NEXT_PUBLIC_THIRDWEB_CLIENT_ID is not defined");
-}
-
-if (!THIRDWEB_SECRET_KEY) {
-  console.error(`${FILE_NAME} Missing NEXT_PUBLIC_THIRDWEB_SECRET_KEY`);
-  throw new Error("NEXT_PUBLIC_THIRDWEB_SECRET_KEY is not defined");
-}
 
 if (!BOT_TOKEN) {
   console.error(`${FILE_NAME} Missing TELEGRAM_BOT_TOKEN`);
@@ -34,18 +14,6 @@ if (!WEBAPP_URL) {
   console.error(`${FILE_NAME} Missing NEXT_PUBLIC_WEBAPP_URL`);
   throw new Error("NEXT_PUBLIC_WEBAPP_URL is not defined");
 }
-
-const client = createThirdwebClient({ 
-  clientId: THIRDWEB_CLIENT_ID,
-  secretKey: THIRDWEB_SECRET_KEY
-});
-
-console.log(`${FILE_NAME} Thirdweb client created with clientId: ${THIRDWEB_CLIENT_ID}`);
-
-const sponsorAccount = privateKeyToAccount({
-    privateKey: SPONSOR_PRIVATE_KEY,
-    client,
-});
 
 async function sendTelegramMessage(chatId, text, reply_markup = null) {
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -77,30 +45,33 @@ export async function POST(req) {
 
     if (messageText === '/start') {
       const userId = data.message.from.id.toString();
-      const expiration = Date.now() + 600000; // valid for 10 minutes
-      const payload = {
-        userId,
-        expiration,
-      };
-      const payloadString = JSON.stringify(payload);
       
-      console.log(`${FILE_NAME} Creating payload:`, payloadString);
-
-      const signature = await sponsorAccount.signMessage({
-        message: payloadString,
+      // Get JWT from our internal API route
+      const jwtResponse = await fetch(`${WEBAPP_URL}/api/authJwt/generate-jwt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
       });
 
-      console.log(`${FILE_NAME} Signature generated:`, signature);
+      if (!jwtResponse.ok) {
+        console.error(`${FILE_NAME} Failed to generate JWT`);
+        await sendTelegramMessage(chatId, "Sorry, there was an error. Please try again later.");
+        return NextResponse.json({ ok: false });
+      }
 
-      const webAppUrl = `${WEBAPP_URL}/login/telegram?signature=${encodeURIComponent(signature)}&payload=${encodeURIComponent(payloadString)}`;
+      const { token } = await jwtResponse.json();
+      
+      const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
       
       console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
 
-      const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to launch our WebApp.";
+      const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to access your wallet.";
       const keyboard = {
         inline_keyboard: [[
           {
-            text: "Launch WebApp",
+            text: "Access Wallet",
             web_app: {url: webAppUrl}
           }
         ]]
