@@ -1,16 +1,29 @@
 "use client";
 
-import { useActiveAccount, AutoConnect, useConnect } from "thirdweb/react";
+import { useActiveAccount, AutoConnect } from "thirdweb/react";
 import { shortenAddress } from "thirdweb/utils";
-import { client, wallet } from "./constants";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Sepolia } from "@thirdweb-dev/chains";
+import { inAppWallet } from "thirdweb/wallets";
+import { createThirdwebClient } from "thirdweb";
+
+// Create client and wallet instances directly in this file
+const client = createThirdwebClient({ 
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID 
+});
+
+const wallet = inAppWallet({
+  smartAccount: {
+    sponsorGas: true,
+    chain: Sepolia
+  }
+});
 
 export default function WalletConnector() {
   const account = useActiveAccount();
   const [userId, setUserId] = useState(null);
   const searchParams = useSearchParams();
-  const connect = useConnect();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -34,26 +47,21 @@ export default function WalletConnector() {
       console.error("AUTH_PHRASE is not set in environment variables");
       return;
     }
-  
-    console.log("Token received:", token);
+
+    console.log("Token:", token);
     console.log("AUTH_PHRASE:", process.env.NEXT_PUBLIC_AUTH_PHRASE);
-  
+    console.log("Client:", client);
+    console.log("Wallet:", wallet);
+    console.log("NEXT_PUBLIC_THIRDWEB_CLIENT_ID:", process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID);
+
     try {
-      console.log("Wallet instance before connection:", wallet);
       console.log("Attempting to connect wallet with token");
-      
-      if (typeof wallet.connect !== 'function') {
-        console.error("wallet.connect is not a function. Wallet object:", wallet);
-        return;
-      }
-  
       await wallet.connect({
         strategy: "jwt",
         jwt: token,
         encryptionKey: process.env.NEXT_PUBLIC_AUTH_PHRASE,
       });
       console.log("Wallet connected successfully");
-      console.log("Wallet instance after connection:", wallet);
     } catch (error) {
       console.error("Wallet connection error:", error);
       console.error("Error stack:", error.stack);

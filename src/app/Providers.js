@@ -17,6 +17,9 @@ function logWithFileName(message, data = null) {
 
 export default function Providers({ children }) {
     logWithFileName("Rendering Provider component");
+    logWithFileName("Client:", client);
+    logWithFileName("Wallet:", wallet);
+    logWithFileName("Chain:", chain);
 
     return (
         <ThirdwebProvider 

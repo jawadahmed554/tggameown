@@ -17,6 +17,3 @@ export const wallet = inAppWallet({
   }
 });
 
-console.log("Client instance in constants:", client);
-console.log("Wallet instance in constants:", wallet);
-console.log("Chain in constants:", chain);
