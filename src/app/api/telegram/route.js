@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
 const FILE_NAME = "[api/telegram/route.js]";
+const AUD_VALUE = "TelegramWallet";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBAPP_URL = process.env.NEXT_PUBLIC_WEBAPP_URL;
+const JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY;
 
 if (!BOT_TOKEN) {
   console.error(`${FILE_NAME} Missing TELEGRAM_BOT_TOKEN`);
@@ -13,6 +16,11 @@ if (!BOT_TOKEN) {
 if (!WEBAPP_URL) {
   console.error(`${FILE_NAME} Missing NEXT_PUBLIC_WEBAPP_URL`);
   throw new Error("NEXT_PUBLIC_WEBAPP_URL is not defined");
+}
+
+if (!JWT_PRIVATE_KEY) {
+  console.error(`${FILE_NAME} JWT_PRIVATE_KEY is not defined in the environment variables`);
+  throw new Error("JWT_PRIVATE_KEY is not defined");
 }
 
 async function sendTelegramMessage(chatId, text, reply_markup = null) {
@@ -35,6 +43,34 @@ async function sendTelegramMessage(chatId, text, reply_markup = null) {
   return response.json();
 }
 
+async function generateJWT(userId) {
+  console.log(`${FILE_NAME} Generating JWT for user ID:`, userId);
+
+  const payload = {
+    iss: WEBAPP_URL,
+    sub: userId,
+    aud: AUD_VALUE,
+    exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiration
+  };
+
+  console.log(`${FILE_NAME} JWT payload:`, JSON.stringify(payload, null, 2));
+
+  return new Promise((resolve, reject) => {
+    jwt.sign(payload, JWT_PRIVATE_KEY, {
+      algorithm: "RS256",
+      keyid: "0", // This should match the "kid" in your JWKS
+    }, (err, token) => {
+      if (err) {
+        console.error(`${FILE_NAME} Error generating JWT:`, err);
+        reject(err);
+      } else {
+        console.log(`${FILE_NAME} JWT generated successfully`);
+        resolve(token);
+      }
+    });
+  });
+}
+
 export async function POST(req) {
   console.log(`${FILE_NAME} POST request received`);
   const data = await req.json();
@@ -53,33 +89,8 @@ export async function POST(req) {
       console.log(`${FILE_NAME} User ID:`, userId);
       
       try {
-        console.log(`${FILE_NAME} Attempting to generate JWT for user:`, userId);
-        
-        // Get JWT from our internal API route
-        const jwtResponse = await fetch(`${WEBAPP_URL}/api/authJwt/generate-jwt`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
-        });
-
-        console.log(`${FILE_NAME} JWT response status:`, jwtResponse.status);
-
-        const responseText = await jwtResponse.text();
-        console.log(`${FILE_NAME} JWT response body:`, responseText);
-
-        if (!jwtResponse.ok) {
-          throw new Error(`Failed to generate JWT: ${responseText}`);
-        }
-
-        const responseData = JSON.parse(responseText);
-        console.log(`${FILE_NAME} JWT response data:`, JSON.stringify(responseData, null, 2));
-
-        const { token } = responseData;
-        
-        const webAppUrl = `${WEBAPP_URL}/login/telegram?token=${encodeURIComponent(token)}`;
-        
+        const token = await generateJWT(userId);
+        const webAppUrl = `${WEBAPP_URL}?token=${encodeURIComponent(token)}`;
         console.log(`${FILE_NAME} WebApp URL generated:`, webAppUrl);
 
         const welcomeMessage = "Welcome to our Telegram bot! 🎉 Click the button below to access your wallet.";
@@ -87,12 +98,12 @@ export async function POST(req) {
           inline_keyboard: [[
             {
               text: "Access Wallet",
-              web_app: {url: webAppUrl}
+              web_app: { url: webAppUrl }
             }
           ]]
         };
-        await sendTelegramMessage(chatId, welcomeMessage, keyboard);
-        console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId);
+        const sendMessageResponse = await sendTelegramMessage(chatId, welcomeMessage, keyboard);
+        console.log(`${FILE_NAME} Welcome message sent to chat ID:`, chatId, 'Response:', sendMessageResponse);
       } catch (error) {
         console.error(`${FILE_NAME} Error in /start command:`, error);
         await sendTelegramMessage(chatId, "Sorry, there was an error. Please try again later.");

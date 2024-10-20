@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const FILE_NAME = "[api/authJwt/.well-known/jwks/route.js]";
+
 const jwks = {
   keys: [
     {
@@ -14,5 +16,7 @@ const jwks = {
 };
 
 export function GET() {
+  console.log(`${FILE_NAME} GET request received for JWKS`);
+  console.log(`${FILE_NAME} Returning JWKS:`, JSON.stringify(jwks, null, 2));
   return NextResponse.json(jwks);
 }
