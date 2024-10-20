@@ -34,17 +34,29 @@ export default function WalletConnector() {
       console.error("AUTH_PHRASE is not set in environment variables");
       return;
     }
-
+  
+    console.log("Token received:", token);
+    console.log("AUTH_PHRASE:", process.env.NEXT_PUBLIC_AUTH_PHRASE);
+  
     try {
+      console.log("Wallet instance before connection:", wallet);
       console.log("Attempting to connect wallet with token");
-      await connect(wallet, {
+      
+      if (typeof wallet.connect !== 'function') {
+        console.error("wallet.connect is not a function. Wallet object:", wallet);
+        return;
+      }
+  
+      await wallet.connect({
         strategy: "jwt",
         jwt: token,
         encryptionKey: process.env.NEXT_PUBLIC_AUTH_PHRASE,
       });
       console.log("Wallet connected successfully");
+      console.log("Wallet instance after connection:", wallet);
     } catch (error) {
       console.error("Wallet connection error:", error);
+      console.error("Error stack:", error.stack);
     }
   };
 
