@@ -5,7 +5,7 @@ import { shortenAddress } from "thirdweb/utils";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { client, chain } from "./constants";
-import { InAppWallet } from "thirdweb/wallets";
+import { inAppWallet } from "thirdweb/wallets";
 
 export default function WalletConnector() {
   const account = useActiveAccount();
@@ -15,8 +15,8 @@ export default function WalletConnector() {
 
   useEffect(() => {
     const initializeWallet = async () => {
-      try {
-        const newWallet = await InAppWallet.create({
+      try { 
+        const newWallet = await inAppWallet.create({
           client: client,
           authProvider: "jwt",
           chain: chain,
