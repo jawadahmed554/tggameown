@@ -2,7 +2,8 @@
 
 import { ThirdwebProvider } from "thirdweb/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { chain, wallet, client } from "./constants";
+import { chain, wallet } from "./constants";
+import { client } from "../../client";
 
 const queryClient = new QueryClient();
 

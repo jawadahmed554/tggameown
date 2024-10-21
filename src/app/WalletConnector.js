@@ -6,12 +6,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sepolia } from "@thirdweb-dev/chains";
 import { inAppWallet } from "thirdweb/wallets";
-import { createThirdwebClient } from "thirdweb";
+import {client} from "../../client"
 
-// Create client and wallet instances directly in this file
-const client = createThirdwebClient({ 
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID 
-});
 
 const wallet = inAppWallet({
   smartAccount: {
