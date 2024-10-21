@@ -15,8 +15,8 @@ export default function WalletConnector() {
 
   useEffect(() => {
     const initializeWallet = async () => {
-      try { 
-        const newWallet = await inAppWallet.create({
+      try {
+        const newWallet = inAppWallet({
           client: client,
           authProvider: "jwt",
           chain: chain,
@@ -28,6 +28,7 @@ export default function WalletConnector() {
         console.log("Wallet created successfully:", newWallet);
       } catch (error) {
         console.error("Error creating wallet:", error);
+        console.error("Error details:", error.message);
       }
     };
 
