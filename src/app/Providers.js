@@ -3,7 +3,7 @@
 import { ThirdwebProvider } from "thirdweb/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { chain, wallet } from "./constants";
-import { client } from "../../client";
+import { client } from "./constants";
 
 const queryClient = new QueryClient();
 
