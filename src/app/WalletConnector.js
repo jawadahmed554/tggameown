@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { client, chain } from "./constants";
 import { inAppWallet } from "thirdweb/wallets";
+import { createThirdwebClient } from "thirdweb";
 
 export default function WalletConnector() {
   const account = useActiveAccount();
