@@ -7,7 +7,7 @@ import { createThirdwebClient } from "thirdweb";
 export const chain = Sepolia;
 
 export const client = createThirdwebClient({ 
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID 
+  clientId: "323f57bde832fa577bee76553827951e" 
 });
 
 export const wallet = inAppWallet({
