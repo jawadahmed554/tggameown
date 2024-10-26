@@ -13,8 +13,16 @@ export default function WalletConnector() {
   const searchParams = useSearchParams();
   const [initializedWallet, setInitializedWallet] = useState(null);
 
+  const client = createThirdwebClient({ 
+    clientId: "323f57bde832fa577bee76553827951e" 
+  });
+
+  console.log("Client in walletConnector:", client);
+  
+
   useEffect(() => {
     const initializeWallet = async () => {
+      console.log("Client in walletConnector after:", client);
       try {
         const newWallet = inAppWallet({
           client: client,
